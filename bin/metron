@@ -1,0 +1,146 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+require 'pathname'
+require 'rubygems/version'
+require 'open-uri'
+
+require 'TheCentralRepository/API'
+
+name = ARGV.shift
+
+# check for library name
+def validate_library_name(library_name)
+  if (library_name == nil or library_name == '')
+    puts "Please specify the library name."
+    exit
+  end
+
+  if (library_name.match(/\W/) != nil)
+    puts "'#{library_name}' is invalid library name."
+    exit
+  end
+
+  if (FileTest.exist?(library_name))
+    puts "'#{library_name}' is already exist."
+    exit
+  end
+end
+
+# create directories
+def create_directories(library_name)
+  dirs = [ 'main', 'test' ]
+  subdirs = [ 'scala', 'java', 'resources' ]
+
+  home = Pathname.new(library_name)
+
+  for d in dirs do
+    for s in subdirs do
+      FileUtils.mkdir_p(home.join(d, s))
+    end
+  end
+
+  otherdirs = ['target', 'lib', 'project']
+
+  for o in otherdirs do
+    FileUtils.mkdir_p(home.join(o))
+  end
+end
+
+# initialize git
+def initialize_git(library_name)
+  if (`which git` != '')
+    File.open(Pathname.new(library_name).join(".gitignore"), "w") do |file|
+      file.puts("# for scala")
+      file.puts("target/")
+      file.puts("*.class")
+      file.puts("# for vim")
+      file.puts("*.swp")
+    end
+
+    `git init`
+    `git add .`
+  end
+end
+
+def fetch_latest_scala_version
+  site = 'http://www.scala-lang.org/files/archive/'
+
+  vers = Array.new
+  open(site) { |f|
+    f.read.scan(/<a href="scala-(2\.\d+\.\d+)\.tgz">/) { |ver|
+      vers.push(ver[0])
+    }
+  }
+
+  sorted = vers.sort { |a, b| Gem::Version.new(a) <=> Gem::Version.new(b) }
+  return sorted[-1]
+end
+
+def calculate_scala_major_version(version)
+  matched = version.match(/^(2\.\d+)\.\d+$/)
+
+  return matched[1]
+end
+
+def fetch_latest_sbt_version
+  site = 'http://dl.bintray.com/sbt/native-packages/sbt/'
+
+  vers = Array.new
+  open(site) { |f|
+    f.read.scan(/href=":(0\.\d+\.\d+)\/"/) { |ver|
+      vers.push(ver)
+    }
+  }
+
+  sorted = vers.sort { |a, b| Gem::Version.new(a) <=> Gem::Version.new(b) }
+  return sorted[-1]
+end
+
+def create_build_sbt(dir)
+  version = '0.1.0'
+  scala_version = fetch_scala_version
+
+  ver_for_artifact = scala_version.match(/^\d+\.\d+/).to_s
+
+  File.open(Pathname.join(dir, "build.sbt"), "w") do |file|
+    file.puts(%!name := "#{library_name}"!)
+    file.puts("")
+    file.puts(%!version := "#{scala_version}"!)
+    file.puts("")
+  end
+end
+
+def download_sbt(library_name, ver)
+  site = 'http://dl.bintray.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/'
+
+  url = site + ver + '/sbt-launch.jar'
+
+  path = Pathname.new(library_name)
+
+  open(path.join('sbt-launch.jar'), 'wb') { |write_file|
+    open(url, 'rb') { |read_file|
+      write_file.write(read_file.read)
+    }
+  }
+
+  open(path.join('sbt'), 'w') { |write_file|
+    write_file.puts("#!/bin/bash")
+    write_file.puts(%!SBT_OPTS="-Xms512M -Xmx1536M -Xss1M -XX:+CMSClassUnloadingEnabled -XX"!)
+    write_file.pust(%!java $SBT_OPTS -jar `dirname $0`/sbt-launch.jar "$@"!)
+  }
+
+  `chmod +x #{library_name}/sbt`
+end
+
+validate_library_name(name)
+create_directories(name)
+
+scala_ver = fetch_latest_scala_version()
+major_ver = calculate_scala_major_version(scala_ver)
+
+sbt_ver = fetch_latest_sbt_version()
+download_sbt(sbt_ver)
+
+initialize_git(name)
+
