@@ -89,7 +89,7 @@ def fetch_latest_sbt_version
   vers = Array.new
   open(site) { |f|
     f.read.scan(/href=":(0\.\d+\.\d+)\/"/) { |ver|
-      vers.push(ver)
+      vers.push(ver[0])
     }
   }
 
@@ -97,17 +97,20 @@ def fetch_latest_sbt_version
   return sorted[-1]
 end
 
-def create_build_sbt(dir)
-  version = '0.1.0'
-  scala_version = fetch_scala_version
+def create_build_sbt(library_name)
+  dist_version = '0.1.0'
 
-  ver_for_artifact = scala_version.match(/^\d+\.\d+/).to_s
+  scala_ver = fetch_latest_scala_version()
+  major_ver = calculate_scala_major_version(scala_ver)
 
-  File.open(Pathname.join(dir, "build.sbt"), "w") do |file|
+  specs2_ver = TheCentralRepository::API.search("org.specs2", "specs2-core_" + major_ver)
+
+  File.open(Pathname.new(library_name).join('build.sbt'), "w") do |file|
     file.puts(%!name := "#{library_name}"!)
     file.puts("")
-    file.puts(%!version := "#{scala_version}"!)
+    file.puts(%!version := "#{scala_ver}"!)
     file.puts("")
+    file.puts(%!libraryDependencies ++= Seq("org.specs2" % "specs2-core_#{major_ver}" % "#{specs2_ver[-1]}" % "test")!)
   end
 end
 
@@ -126,21 +129,42 @@ def download_sbt(library_name, ver)
 
   open(path.join('sbt'), 'w') { |write_file|
     write_file.puts("#!/bin/bash")
-    write_file.puts(%!SBT_OPTS="-Xms512M -Xmx1536M -Xss1M -XX:+CMSClassUnloadingEnabled -XX"!)
-    write_file.pust(%!java $SBT_OPTS -jar `dirname $0`/sbt-launch.jar "$@"!)
+    write_file.puts(%!SBT_OPTS="-Xms512M -Xmx1536M -Xss1M -XX:+CMSClassUnloadingEnabled"!)
+    write_file.puts(%!java $SBT_OPTS -jar `dirname $0`/sbt-launch.jar "$@"!)
   }
 
   `chmod +x #{library_name}/sbt`
 end
 
+def create_build_properties(library_name, ver)
+  path = Pathname.new(library_name).join('project', 'build.properties')
+
+  open(path, 'w') { |write_file|
+    write_file.puts("sbt.version=#{ver}")
+  }
+end
+
+def create_plugins_sbt(library_name)
+  groupID = 'org.scoverage'
+  artifactID = 'sbt-scoverage'
+
+  vers = TheCentralRepository::API.search(groupID, artifactID)
+  path = Pathname.new(library_name).join('project', 'plugins.sbt')
+
+  open(path, 'w') { |write_file|
+    write_file.puts(%!addSbtPlugin("#{groupID}" % "#{artifactID}" % "#{vers[-1]}")!)
+  }
+
+end
+
 validate_library_name(name)
 create_directories(name)
 
-scala_ver = fetch_latest_scala_version()
-major_ver = calculate_scala_major_version(scala_ver)
-
 sbt_ver = fetch_latest_sbt_version()
-download_sbt(sbt_ver)
+download_sbt(name, sbt_ver)
+create_build_sbt(name)
+create_build_properties(name, sbt_ver)
+create_plugins_sbt(name)
 
 initialize_git(name)
 

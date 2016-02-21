@@ -1,8 +1,8 @@
 require "TheCentralRepository/API/version"
 
-require "uri"
 require "open-uri"
 require "JSON"
+require 'rubygems/version'
 
 module TheCentralRepository
   module API
@@ -19,9 +19,13 @@ module TheCentralRepository
           else
             vers = res["response"]["docs"].map { |item| item["v"] }
             if (ver_re == nil)
-              return vers
+              return vers.sort { |a, b|
+                Gem::Version.new(a) <=> Gem::Version.new(b)
+              }
             else
-              return vers.grep(ver_re)
+              return vers.grep(ver_re).sort { |a, b|
+                Gem::Version.new(a) <=> Gem::Version.new(b)
+              }
             end
           end
         }
