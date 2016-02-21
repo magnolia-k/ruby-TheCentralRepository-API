@@ -16,7 +16,7 @@ def validate_library_name(library_name)
     exit
   end
 
-  if (library_name.match(/\W/) != nil)
+  if (library_name.match(/a-zA-Z0-9_-/) != nil)
     puts "'#{library_name}' is invalid library name."
     exit
   end
@@ -32,7 +32,7 @@ def create_directories(library_name)
   dirs = [ 'main', 'test' ]
   subdirs = [ 'scala', 'java', 'resources' ]
 
-  home = Pathname.new(library_name)
+  home = Pathname.new(library_name).join('src')
 
   for d in dirs do
     for s in subdirs do
