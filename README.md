@@ -1,8 +1,12 @@
 # TheCentralRepository::API
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/TheCentralRepository/API`. To experiment with that code, run `bin/console` for an interactive prompt.
+API for search The Central Repository
 
-TODO: Delete this and the text above, and describe your gem
+  require 'TheCentralReposiroy/API'
+
+  vers = TheCentralRepository::API.search('org.specs2', 'specs2_2.11')
+
+  p vers[-1] # latest version
 
 ## Installation
 
