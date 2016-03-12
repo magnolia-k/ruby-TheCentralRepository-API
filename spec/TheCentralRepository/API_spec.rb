@@ -8,8 +8,10 @@ describe TheCentralRepository::API do
   end
 
   it 'does something useful' do
-    vers = TheCentralRepository::API.search("org.specs2", "specs2-core_2.11", /^\d\.\d(\.\d)?$/)
-    pp vers
+    vers = TheCentralRepository::API.search_by_keyword("specs2")
+    pp vers[:artifacts][0]
+    pp vers[:request_params].version
+    pp vers[:number_of_found]
     expect(true).to eq(true)
   end
 
