@@ -1,13 +1,13 @@
 # TheCentralRepository::API
 
-API for search The Central Repository
+API for search [The Central Repository](http://central.sonatype.org)
 
 ```ruby
 require 'TheCentralReposiroy/API'
 result = TheCentralRepository::API.search_by_keyword('scala-dist')
-```
 
-  p vers[:artifacts][0] # top score search result
+p vers[:artifacts][0] # top score search result
+```
 
 ## Installation
 

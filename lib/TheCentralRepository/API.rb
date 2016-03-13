@@ -83,7 +83,7 @@ module TheCentralRepository
       params = Array.new
       keys.select { |k, v|
         if coodinate.has_key?(k) then
-          params.push(%!#{keys[v]}:"#{coodinate[k]}"!)
+          params.push(%!#{keys[k]}:"#{coodinate[k]}"!)
         end
       }
 
@@ -119,8 +119,8 @@ module TheCentralRepository
       return retreave_artifact(query)
     end
 
-    def self.search_by_tag(tag, start = 0, rows = 20)
-      raise ArgumentError if tag.empty?
+    def self.search_by_tags(tags, start = 0, rows = 20)
+      raise ArgumentError if tags.empty?
 
       query = @@base_url + "q=tags:#{tags}&start=#{start}&rows=#{rows}&wt=json"
 
