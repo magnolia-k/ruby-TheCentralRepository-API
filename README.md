@@ -3,10 +3,9 @@
 API for search The Central Repository
 
   require 'TheCentralReposiroy/API'
+  result = TheCentralRepository::API.search_by_keyword('scala-dist')
 
-  vers = TheCentralRepository::API.search('org.specs2', 'specs2_2.11')
-
-  p vers[-1] # latest version
+  p vers[:artifacts][0] # top score search result
 
 ## Installation
 
@@ -26,7 +25,8 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+  require 'TheCentralReposiroy/API'
+  result = TheCentralRepository::API.search_by_keyword('scala-dist')
 
 ## Development
 
@@ -36,5 +36,5 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/TheCentralRepository-API.
+Bug reports and pull requests are welcome on GitHub at [https://github.com/magnolia-k/ruby-TheCentralRepository-API](https://github.com/magnolia-k/ruby-TheCentralRepository-API).
 
