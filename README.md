@@ -2,8 +2,10 @@
 
 API for search The Central Repository
 
-  require 'TheCentralReposiroy/API'
-  result = TheCentralRepository::API.search_by_keyword('scala-dist')
+```ruby
+require 'TheCentralReposiroy/API'
+result = TheCentralRepository::API.search_by_keyword('scala-dist')
+```
 
   p vers[:artifacts][0] # top score search result
 
@@ -25,8 +27,10 @@ Or install it yourself as:
 
 ## Usage
 
-  require 'TheCentralReposiroy/API'
-  result = TheCentralRepository::API.search_by_keyword('scala-dist')
+```ruby
+require 'TheCentralReposiroy/API'
+result = TheCentralRepository::API.search_by_keyword('scala-dist')
+```
 
 ## Development
 
