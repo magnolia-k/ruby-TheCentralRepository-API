@@ -15,4 +15,12 @@ describe TheCentralRepository::API do
     expect(true).to eq(true)
   end
 
+  it 'does something useful' do
+    vers = TheCentralRepository::API.collect_artifact_versions("org.specs2", "specs2-core_2.11")
+    pp vers[:artifact_versions][0]
+    pp vers[:request_params].version
+    pp vers[:number_of_found]
+
+  end
+
 end

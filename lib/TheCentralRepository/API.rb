@@ -18,9 +18,10 @@ module TheCentralRepository
       @rows = args["rows"]
       @version = args["version"]
       @default_type = args["defType"]
+      @core = args["core"]
     end
 
-    attr_reader :spell_check, :field_list, :sort, :indent, :query, :query_field,:spell_check_count, :writer_resolution, :rows, :version, :default_type
+    attr_reader :spell_check, :field_list, :sort, :indent, :query, :query_field,:spell_check_count, :writer_resolution, :rows, :version, :default_type, :core
   end
 
   class Artifact
@@ -74,6 +75,28 @@ module TheCentralRepository
           },
 
           :number_of_found => res["response"]["numFound"],
+          :start => res["response"]["start"],
+
+          :request_params => RequestParams.new(res["responseHeader"]["params"])
+        }
+      }
+    end
+   
+    def self.retreave_artifact_version(query)
+      open(query) { |f|
+        res = JSON.parse(f.read)
+
+        if res["response"]["numFound"] == 0 then
+          raise "Could not fetch..."
+        end
+
+        return {
+          :artifact_versions => res["response"]["docs"].map { |item|
+            ArtifactVersion.new(item)
+          },
+
+          :number_of_found => res["response"]["numFound"],
+          :start => res["response"]["start"],
 
           :request_params => RequestParams.new(res["responseHeader"]["params"])
         }
@@ -108,7 +131,7 @@ module TheCentralRepository
       query = @@base_url + "q=" + params.join("%20AND%20") +
         "&start=#{start}&rows=#{rows}&wt=json"
 
-      result = execute_query(query)
+      result = retreave_artifact(query)
 
       return result
     end
@@ -116,7 +139,7 @@ module TheCentralRepository
     def self.search_by_classname(classname, start = 0, rows = 20)
       query = @@base_url + %!q=c:"#{classname}"&start=#{start}&rows=#{rows}&wt=json!
 
-      result = execute_query(query)
+      result = retreave_artifact(query)
 
       return result
     end
@@ -124,7 +147,7 @@ module TheCentralRepository
     def self.search_by_fully_qualified_classname(fully_qualified_classname, start = 0, rows = 20)
       query = @@base_url + %!q=fc:"#{fully_qualified_classname}"&start=#{start}&rows=#{rows}&wt=json!
 
-      result = execute_query(query)
+      result = retreave_artifact(query)
 
       return result
     end
@@ -132,7 +155,7 @@ module TheCentralRepository
     def self.search_by_SHA1(sha1, start = 0, rows = 20)
       query = @@base_url + %!q=1:"#{sha1}"&start=#{start}&rows=#{rows}&wt=json!
 
-      result = execute_query(query)
+      result = retreave_artifact(query)
 
       return result
     end
@@ -140,7 +163,7 @@ module TheCentralRepository
     def self.search_by_tag(tag, start = 0, rows = 20)
       query = @@base_url + "q=tags:#{tags}&start=#{start}&rows=#{rows}&wt=json"
 
-      result = execute_query(query)
+      result = retreave_artifact(query)
 
       return result
     end
@@ -153,21 +176,17 @@ module TheCentralRepository
       return path
     end
 
-    def self.collect_versions(groupID, artifactID, ver_re = nil, start = 0, rows = 20)
+    def self.collect_artifact_versions(groupID, artifactID, ver_re = nil, start = 0, rows = 20)
 
-      query = @@base_url + %!q=g:"#{groupID}"+AND+a:"#{artifactID}&core=gav&start=#{start}&rows=#{rows}&wt=json"!
+      query = @@base_url + %!q=g:"#{groupID}"+AND+a:"#{artifactID}"&core=gav&start=#{start}&rows=#{rows}&wt=json!
 
-      result = execute_query(query)
+      result = retreave_artifact_version(query)
 
-      return ver_re ? result.grep(ver_re) : result
-    end
+      if ver_re then
+        result[:artifact_versions] = result[:artifact_versions].grep(ver_re)
+      end
 
-    def self.collect_all_versions(groupID, artifactID, ver_re = nil)
-      
-
-    end
-
-   def retreave_artifact_version(query)
+      return result
     end
 
   end
