@@ -55,19 +55,107 @@ module TheCentralRepository
     end
 
     attr_reader :id, :groupID, :artifactID, :version, :packaging, :extension_collection, :time_stamp, :tags
+
   end
 
   module API
 
     @@base_url = "http://search.maven.org/solrsearch/select?"
 
+   def self.search_by_keyword(keyword, start = 0, rows = 20)
+      raise ArgumentError if keyword.empty?
+
+      query = @@base_url + "q=#{keyword}&start=#{start}&rows=#{rows}&wt=json"
+
+      return retreave_artifact(query)
+   end
+
+    def self.search_by_coodinate(coodinate, start = 0, rows = 20)
+
+      keys = {
+        :groupID => "g",
+        :artifactID => "a",
+        :version => "v",
+        :packaging => "p",
+        :classifier => "l"
+      }
+
+      params = Array.new
+      keys.select { |k, v|
+        if coodinate.has_key?(k) then
+          params.push(%!#{keys[v]}:"#{coodinate[k]}"!)
+        end
+      }
+
+      raise ArgumentError if params.empty?
+
+      query = @@base_url + "q=" + params.join("%20AND%20") +
+        "&start=#{start}&rows=#{rows}&wt=json"
+
+      return retreave_artifact(query)
+    end
+
+    def self.search_by_classname(classname, start = 0, rows = 20)
+      raise ArgumentError if classname.empty?
+
+      query = @@base_url + %!q=c:"#{classname}"&start=#{start}&rows=#{rows}&wt=json!
+
+      return retreave_artifact(query)
+    end
+
+    def self.search_by_fully_qualified_classname(fully_qualified_classname, start = 0, rows = 20)
+      raise ArgumentError if fully_qualified_classname.empty?
+
+      query = @@base_url + %!q=fc:"#{fully_qualified_classname}"&start=#{start}&rows=#{rows}&wt=json!
+
+      return retreave_artifact(query)
+    end
+
+    def self.search_by_SHA1(sha1, start = 0, rows = 20)
+      raise ArgumentError if sha1.empty?
+
+      query = @@base_url + %!q=1:"#{sha1}"&start=#{start}&rows=#{rows}&wt=json!
+
+      return retreave_artifact(query)
+    end
+
+    def self.search_by_tag(tag, start = 0, rows = 20)
+      raise ArgumentError if tag.empty?
+
+      query = @@base_url + "q=tags:#{tags}&start=#{start}&rows=#{rows}&wt=json"
+
+      return retreave_artifact(query)
+    end
+
+    def self.create_link_for_download(groupID, artifactID, version, extension)
+      raise ArgumentError if groupID.empty? or artifactID.empty? or version.empty? or extension.empty?
+
+      path = "http://search.maven.org/remotecontent?filepath=" +
+        groupID.gsub(/\./, "/") +
+        "/#{artifactID}/#{version}/#{artifactID}-#{version}.#{extension}"
+
+      return path
+    end
+
+    def self.collect_artifact_versions(groupID, artifactID, ver_re = nil, start = 0, rows = 20)
+
+      raise ArgumentError if groupID.empty? or artifactID.empty?
+
+      query = @@base_url + %!q=g:"#{groupID}"+AND+a:"#{artifactID}"&core=gav&start=#{start}&rows=#{rows}&wt=json!
+
+      result = retreave_artifact_version(query)
+
+      if ver_re then
+        result[:artifact_versions] = result[:artifact_versions].grep(ver_re)
+      end
+
+      return result
+    end
+
+    private
     def self.retreave_artifact(query)
       open(query) { |f|
         res = JSON.parse(f.read)
-
-        if res["response"]["numFound"] == 0 then
-          raise "Could not fetch..."
-        end
 
         return {
           :artifacts => res["response"]["docs"].map { |item|
@@ -86,10 +174,6 @@ module TheCentralRepository
       open(query) { |f|
         res = JSON.parse(f.read)
 
-        if res["response"]["numFound"] == 0 then
-          raise "Could not fetch..."
-        end
-
         return {
           :artifact_versions => res["response"]["docs"].map { |item|
             ArtifactVersion.new(item)
@@ -102,92 +186,5 @@ module TheCentralRepository
         }
       }
     end
-
-    def self.search_by_keyword(keyword, start = 0, rows = 20)
-      query = @@base_url + "q=#{keyword}&start=#{start}&rows=#{rows}&wt=json"
-
-      result = retreave_artifact(query)
-
-      return result
-    end
-
-    def self.search_by_coodinate(coodinate, start = 0, rows = 20)
-
-      params = Array.new
-      keys = {
-        :groupID => "g",
-        :artifactID => "a",
-        :version => "v",
-        :packaging => "p",
-        :classifier => "l"
-      }
-
-      keys.select { |k, v|
-        if coodinate.has_key?(k) then
-          params.push(%!#{keys[v]}:"#{coodinate[k]}"!)
-        end
-      }
-
-      query = @@base_url + "q=" + params.join("%20AND%20") +
-        "&start=#{start}&rows=#{rows}&wt=json"
-
-      result = retreave_artifact(query)
-
-      return result
-    end
-
-    def self.search_by_classname(classname, start = 0, rows = 20)
-      query = @@base_url + %!q=c:"#{classname}"&start=#{start}&rows=#{rows}&wt=json!
-
-      result = retreave_artifact(query)
-
-      return result
-    end
-
-    def self.search_by_fully_qualified_classname(fully_qualified_classname, start = 0, rows = 20)
-      query = @@base_url + %!q=fc:"#{fully_qualified_classname}"&start=#{start}&rows=#{rows}&wt=json!
-
-      result = retreave_artifact(query)
-
-      return result
-    end
-
-    def self.search_by_SHA1(sha1, start = 0, rows = 20)
-      query = @@base_url + %!q=1:"#{sha1}"&start=#{start}&rows=#{rows}&wt=json!
-
-      result = retreave_artifact(query)
-
-      return result
-    end
-
-    def self.search_by_tag(tag, start = 0, rows = 20)
-      query = @@base_url + "q=tags:#{tags}&start=#{start}&rows=#{rows}&wt=json"
-
-      result = retreave_artifact(query)
-
-      return result
-    end
-
-    def self.create_link_for_download(groupID, artifactID, version, extension)
-      path = "http://search.maven.org/remotecontent?filepath=" +
-        groupID.gsub(/\./, "/") +
-        "/#{artifactID}/#{version}/#{artifactID}-#{version}.extension"
-
-      return path
-    end
-
-    def self.collect_artifact_versions(groupID, artifactID, ver_re = nil, start = 0, rows = 20)
-
-      query = @@base_url + %!q=g:"#{groupID}"+AND+a:"#{artifactID}"&core=gav&start=#{start}&rows=#{rows}&wt=json!
-
-      result = retreave_artifact_version(query)
-
-      if ver_re then
-        result[:artifact_versions] = result[:artifact_versions].grep(ver_re)
-      end
-
-      return result
-    end
-
   end
 end
